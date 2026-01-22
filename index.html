@@ -441,9 +441,17 @@
     if(appData.codeA === appData.codeB) {
       appData.result = "OK";
       document.getElementById('result-display').innerHTML = '<span class="res-ok">OK</span>';
+      // OK: 진동 1회 (200ms)
+      if (navigator.vibrate) {
+        navigator.vibrate(200);
+      }
     } else {
       appData.result = "NG";
       document.getElementById('result-display').innerHTML = '<span class="res-ng">NG</span>';
+      // NG: 진동 4회 (100ms 진동, 100ms 쉬기 반복)
+      if (navigator.vibrate) {
+        navigator.vibrate([100, 100, 100, 100, 100, 100, 100]);
+      }
     }
     
     // 정보 표시
