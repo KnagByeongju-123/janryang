@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>잔량 혼입 방지 시스템 (QR코드)</title>
-  <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
+  <script src="https://unpkg.com/html5-qrcode"></script>
   <style>
     /* 스타일: 모바일 터치 최적화 */
     body { font-family: 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif; margin: 0; padding: 0; background-color: #f0f2f5; text-align: center; user-select: none; }
@@ -16,8 +16,10 @@
     @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 
     /* 버튼들 */
-    .btn-worker { width: 100%; padding: 25px; margin: 8px 0; font-size: 1.2rem; cursor: pointer; background: #4a90e2; color: white; border: none; border-radius: 12px; transition: background 0.2s; }
+    .btn-worker { width: 100%; padding: 18px 8px; margin: 5px 0; font-size: 1.05rem; cursor: pointer; background: #4a90e2; color: white; border: none; border-radius: 8px; transition: background 0.2s; }
     .btn-worker:active { background: #357abd; transform: scale(0.98); }
+    
+    #worker-list { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
     
     /* QR 스캔 영역 */
     .qr-scanner-wrapper { 
@@ -27,37 +29,14 @@
       margin: 20px 0;
     }
 
-    #qr-video { 
-      width: 100%; 
-      max-width: 350px; 
-      height: 350px; 
-      border: 3px solid #4a90e2; 
-      border-radius: 12px; 
-      background: #000; 
-      object-fit: cover;
+    #preview {
+      width: 100%;
+      max-width: 350px;
+      height: 350px;
+      border: 3px solid #4a90e2;
+      border-radius: 12px;
+      background: #000;
       margin-bottom: 15px;
-    }
-
-    .qr-overlay-frame { 
-      position: relative; 
-      width: 100%; 
-      max-width: 350px; 
-      aspect-ratio: 1; 
-      margin-bottom: 15px;
-    }
-
-    .qr-overlay-frame::after { 
-      content: ''; 
-      position: absolute; 
-      top: 50%; 
-      left: 50%; 
-      transform: translate(-50%, -50%); 
-      width: 280px; 
-      height: 280px; 
-      border: 3px solid #4a90e2; 
-      border-radius: 12px; 
-      box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.5); 
-      pointer-events: none; 
     }
 
     /* QR 인식 결과 표시 */
@@ -78,6 +57,9 @@
       color: #1565c0; 
       word-break: break-all;
       margin-bottom: 15px;
+      padding: 10px;
+      background: #f5f5f5;
+      border-radius: 6px;
     }
 
     .qr-result-buttons { 
@@ -101,9 +83,19 @@
       color: white; 
     }
 
+    .btn-qr-confirm:active {
+      background: #3d8b40;
+      transform: scale(0.98);
+    }
+
     .btn-qr-rescan { 
       background: #ff9800; 
       color: white; 
+    }
+
+    .btn-qr-rescan:active {
+      background: #e68900;
+      transform: scale(0.98);
     }
 
     /* 스캔 상태 텍스트 */
@@ -156,6 +148,7 @@
     .info-box span { font-weight: bold; color: #333; float: right; }
 
     .btn-finish { width: 100%; padding: 20px; font-size: 1.3rem; background: #6c757d; color: white; border: none; border-radius: 8px; cursor: pointer; }
+    .btn-finish:active { background: #5a6268; transform: scale(0.98); }
     
     /* 로딩 오버레이 */
     #loading { display: none; position: fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); color:white; font-size:2rem; padding-top:50%; z-index:999; }
@@ -188,9 +181,6 @@
       <button class="btn-worker" onclick="selectWorker('송경옥')">송경옥</button>
       <button class="btn-worker" onclick="selectWorker('이유선')">이유선</button>
       <button class="btn-worker" onclick="selectWorker('강란희')">강란희</button>
-      
-    
-    
     </div>
   </div>
 
@@ -204,7 +194,7 @@
     </div>
 
     <div class="qr-scanner-wrapper">
-      <video id="qr-video"></video>
+      <div id="preview"></div>
       <p class="scan-status scanning" id="scan-status-a">스캔 중...</p>
     </div>
 
@@ -246,7 +236,7 @@
     <p style="color: #666; margin-bottom: 15px;">잔량 박스의 QR코드를 카메라로 스캔하세요</p>
 
     <div class="qr-scanner-wrapper">
-      <video id="qr-video-b"></video>
+      <div id="preview-b"></div>
       <p class="scan-status scanning" id="scan-status-b">스캔 중...</p>
     </div>
 
@@ -288,10 +278,8 @@
   const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbz-spORG3FgGC6E4moEsvUQe3UcZ-0Xs9Iq8lWrTeHgraS3HKYwQRmppMMQQpI_vhLW/exec";
 
   let appData = { worker: '', codeA: '', qty: '', codeB: '', result: '' };
-  let videoStreamA = null;
-  let videoStreamB = null;
-  let qrScannerA = null;
-  let qrScannerB = null;
+  let html5QrCodeScannerA = null;
+  let html5QrCodeScannerB = null;
 
   // 화면 전환
   function showScreen(id) {
@@ -312,13 +300,34 @@
   // 2. A 박스 QR 스캔
   // ============================================
   function startQrScanA() {
-    const video = document.getElementById('qr-video');
-    startQrScanner(video, (qrData) => {
-      document.getElementById('qr-value-a').innerText = qrData;
-      document.getElementById('qr-result-a').classList.add('show');
-    });
-    videoStreamA = video.srcObject;
-    qrScannerA = setInterval(() => scanQrCode(video), 100);
+    const previewId = "preview";
+    
+    try {
+      html5QrCodeScannerA = new Html5Qrcode(previewId);
+      html5QrCodeScannerA.start(
+        { facingMode: "environment" },
+        { fps: 10, qrbox: { width: 300, height: 300 } },
+        (decodedText) => {
+          if (decodedText && decodedText.trim()) {
+            // QR 스캔 감지
+            document.getElementById('qr-value-a').innerText = decodedText;
+            document.getElementById('qr-result-a').classList.add('show');
+            html5QrCodeScannerA.pause();
+          }
+        },
+        (errorMessage) => {
+          // 무시 - 계속 스캔
+        }
+      ).catch(err => {
+        alert("카메라 접근이 거부되었습니다.\n설정에서 카메라 권한을 허용해주세요.");
+        console.error(err);
+        cancelScanA();
+      });
+    } catch (err) {
+      alert("QR 스캐너 초기화 실패");
+      console.error(err);
+      cancelScanA();
+    }
   }
 
   function confirmQrA() {
@@ -331,7 +340,9 @@
   function rescanQrA() {
     document.getElementById('qr-result-a').classList.remove('show');
     document.getElementById('qr-value-a').innerText = '';
-    startQrScanA();
+    if (html5QrCodeScannerA) {
+      html5QrCodeScannerA.resume();
+    }
   }
 
   function cancelScanA() {
@@ -340,11 +351,13 @@
   }
 
   function stopQrScanA() {
-    if (videoStreamA) {
-      videoStreamA.getTracks().forEach(track => track.stop());
-    }
-    if (qrScannerA) {
-      clearInterval(qrScannerA);
+    if (html5QrCodeScannerA) {
+      html5QrCodeScannerA.stop()
+        .then(() => {
+          html5QrCodeScannerA.clear();
+          html5QrCodeScannerA = null;
+        })
+        .catch(err => console.error("스캔 중지 오류:", err));
     }
   }
 
@@ -372,13 +385,34 @@
   // 4. B 박스 QR 스캔
   // ============================================
   function startQrScanB() {
-    const video = document.getElementById('qr-video-b');
-    startQrScanner(video, (qrData) => {
-      document.getElementById('qr-value-b').innerText = qrData;
-      document.getElementById('qr-result-b').classList.add('show');
-    });
-    videoStreamB = video.srcObject;
-    qrScannerB = setInterval(() => scanQrCode(video), 100);
+    const previewId = "preview-b";
+    
+    try {
+      html5QrCodeScannerB = new Html5Qrcode(previewId);
+      html5QrCodeScannerB.start(
+        { facingMode: "environment" },
+        { fps: 10, qrbox: { width: 300, height: 300 } },
+        (decodedText) => {
+          if (decodedText && decodedText.trim()) {
+            // QR 스캔 감지
+            document.getElementById('qr-value-b').innerText = decodedText;
+            document.getElementById('qr-result-b').classList.add('show');
+            html5QrCodeScannerB.pause();
+          }
+        },
+        (errorMessage) => {
+          // 무시 - 계속 스캔
+        }
+      ).catch(err => {
+        alert("카메라 접근이 거부되었습니다.\n설정에서 카메라 권한을 허용해주세요.");
+        console.error(err);
+        cancelScanB();
+      });
+    } catch (err) {
+      alert("QR 스캐너 초기화 실패");
+      console.error(err);
+      cancelScanB();
+    }
   }
 
   function confirmQrB() {
@@ -390,7 +424,9 @@
   function rescanQrB() {
     document.getElementById('qr-result-b').classList.remove('show');
     document.getElementById('qr-value-b').innerText = '';
-    startQrScanB();
+    if (html5QrCodeScannerB) {
+      html5QrCodeScannerB.resume();
+    }
   }
 
   function cancelScanB() {
@@ -399,49 +435,13 @@
   }
 
   function stopQrScanB() {
-    if (videoStreamB) {
-      videoStreamB.getTracks().forEach(track => track.stop());
-    }
-    if (qrScannerB) {
-      clearInterval(qrScannerB);
-    }
-  }
-
-  // ============================================
-  // QR 코드 스캔 로직 (공통)
-  // ============================================
-  function startQrScanner(video, onDetect) {
-    navigator.mediaDevices.getUserMedia({ 
-      video: { facingMode: 'environment' } 
-    })
-    .then(stream => {
-      video.srcObject = stream;
-      video.play();
-    })
-    .catch(err => {
-      alert("카메라 접근이 거부되었습니다.\n설정에서 카메라 권한을 허용해주세요.");
-      console.error(err);
-    });
-  }
-
-  function scanQrCode(video) {
-    const canvas = document.createElement('canvas');
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
-    
-    if (canvas.width === 0 || canvas.height === 0) {
-      return; // 비디오가 아직 준비되지 않음
-    }
-
-    const ctx = canvas.getContext('2d');
-    ctx.drawImage(video, 0, 0);
-
-    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-    const code = jsQR(imageData.data, canvas.width, canvas.height);
-
-    if (code) {
-      // QR 코드 감지됨 - 콜백 실행
-      // (콜백은 startQrScanner 호출 시 전달됨)
+    if (html5QrCodeScannerB) {
+      html5QrCodeScannerB.stop()
+        .then(() => {
+          html5QrCodeScannerB.clear();
+          html5QrCodeScannerB = null;
+        })
+        .catch(err => console.error("스캔 중지 오류:", err));
     }
   }
 
@@ -504,4 +504,3 @@
 </body>
 
 </html>
-
