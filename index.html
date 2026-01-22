@@ -3,7 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>잔량 혼입 방지 시스템</title>
+  <title>잔량 혼입 방지 시스템 (QR코드)</title>
+  <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
   <style>
     /* 스타일: 모바일 터치 최적화 */
     body { font-family: 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif; margin: 0; padding: 0; background-color: #f0f2f5; text-align: center; user-select: none; }
@@ -18,9 +19,122 @@
     .btn-worker { width: 100%; padding: 25px; margin: 8px 0; font-size: 1.2rem; cursor: pointer; background: #4a90e2; color: white; border: none; border-radius: 12px; transition: background 0.2s; }
     .btn-worker:active { background: #357abd; transform: scale(0.98); }
     
-    /* 입력창 */
-    input[type="text"] { width: 90%; padding: 15px; font-size: 1.5rem; text-align: center; border: 2px solid #ddd; border-radius: 8px; margin-bottom: 20px; background: #fafafa; }
-    input:focus { border-color: #4a90e2; outline: none; background: #fff; }
+    /* QR 스캔 영역 */
+    .qr-scanner-wrapper { 
+      display: flex; 
+      flex-direction: column; 
+      align-items: center; 
+      margin: 20px 0;
+    }
+
+    #qr-video { 
+      width: 100%; 
+      max-width: 350px; 
+      height: 350px; 
+      border: 3px solid #4a90e2; 
+      border-radius: 12px; 
+      background: #000; 
+      object-fit: cover;
+      margin-bottom: 15px;
+    }
+
+    .qr-overlay-frame { 
+      position: relative; 
+      width: 100%; 
+      max-width: 350px; 
+      aspect-ratio: 1; 
+      margin-bottom: 15px;
+    }
+
+    .qr-overlay-frame::after { 
+      content: ''; 
+      position: absolute; 
+      top: 50%; 
+      left: 50%; 
+      transform: translate(-50%, -50%); 
+      width: 280px; 
+      height: 280px; 
+      border: 3px solid #4a90e2; 
+      border-radius: 12px; 
+      box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.5); 
+      pointer-events: none; 
+    }
+
+    /* QR 인식 결과 표시 */
+    .qr-result-box { 
+      background: #e8f5e9; 
+      border: 2px solid #4caf50; 
+      padding: 15px; 
+      border-radius: 8px; 
+      margin: 15px 0; 
+      display: none;
+    }
+
+    .qr-result-box.show { display: block; }
+    .qr-result-box h3 { margin: 0 0 10px 0; color: #2e7d32; }
+    .qr-result-value { 
+      font-size: 1.3rem; 
+      font-weight: bold; 
+      color: #1565c0; 
+      word-break: break-all;
+      margin-bottom: 15px;
+    }
+
+    .qr-result-buttons { 
+      display: flex; 
+      gap: 10px; 
+      justify-content: center;
+    }
+
+    .btn-qr-confirm, .btn-qr-rescan { 
+      flex: 1; 
+      padding: 12px; 
+      font-size: 1rem; 
+      border: none; 
+      border-radius: 8px; 
+      cursor: pointer; 
+      font-weight: bold;
+    }
+
+    .btn-qr-confirm { 
+      background: #4caf50; 
+      color: white; 
+    }
+
+    .btn-qr-rescan { 
+      background: #ff9800; 
+      color: white; 
+    }
+
+    /* 스캔 상태 텍스트 */
+    .scan-status { 
+      font-size: 0.95rem; 
+      color: #666; 
+      margin: 10px 0;
+    }
+
+    .scan-status.scanning { 
+      color: #4a90e2; 
+      font-weight: bold;
+    }
+
+    /* 취소 버튼 */
+    .btn-cancel { 
+      width: 100%; 
+      padding: 15px; 
+      font-size: 1.1rem; 
+      background: #dc3545; 
+      color: white; 
+      border: none; 
+      border-radius: 8px; 
+      cursor: pointer; 
+      margin-top: 10px;
+    }
+
+    .btn-cancel:active { 
+      background: #c82333; 
+      transform: scale(0.98);
+    }
 
     /* 키패드 */
     .keypad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 10px; }
@@ -28,6 +142,10 @@
     .key-btn:active { background: #e2e6ea; }
     .key-confirm { grid-column: span 3; background: #28a745; color: white; font-weight: bold; }
     
+    /* 수량 입력창 */
+    input[type="text"] { width: 90%; padding: 15px; font-size: 1.5rem; text-align: center; border: 2px solid #ddd; border-radius: 8px; margin-bottom: 20px; background: #fafafa; }
+    input:focus { border-color: #4a90e2; outline: none; background: #fff; }
+
     /* 결과창 */
     .result-box { font-size: 5rem; font-weight: bold; margin: 40px 0; }
     .res-ok { color: #28a745; }
@@ -41,12 +159,24 @@
     
     /* 로딩 오버레이 */
     #loading { display: none; position: fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); color:white; font-size:2rem; padding-top:50%; z-index:999; }
+
+    /* 카메라 권한 요청 메시지 */
+    .permission-message {
+      background: #fff3cd;
+      border: 1px solid #ffc107;
+      padding: 15px;
+      border-radius: 8px;
+      margin: 15px 0;
+      color: #856404;
+      font-size: 0.95rem;
+    }
   </style>
 </head>
 <body>
 
 <div class="container">
 
+  <!-- 1단계: 작업자 선택 -->
   <div id="step-1" class="screen active">
     <h2>작업자 선택</h2>
     <div id="worker-list">
@@ -57,12 +187,33 @@
     </div>
   </div>
 
+  <!-- 2단계: A 박스 QR 스캔 -->
   <div id="step-2" class="screen">
-    <h2>[A] 원본 박스 스캔</h2>
-    <p>바코드를 리딩하세요</p>
-    <input type="text" id="input-a" placeholder="클릭 후 스캔" autocomplete="off">
+    <h2>[A] 원본 박스 QR 스캔</h2>
+    <p style="color: #666; margin-bottom: 15px;">원본 박스의 QR코드를 카메라로 스캔하세요</p>
+    
+    <div class="permission-message">
+      📱 첫 스캔 시 카메라 권한 요청이 나타납니다. '허용'을 선택해주세요.
+    </div>
+
+    <div class="qr-scanner-wrapper">
+      <video id="qr-video"></video>
+      <p class="scan-status scanning" id="scan-status-a">스캔 중...</p>
+    </div>
+
+    <div class="qr-result-box" id="qr-result-a">
+      <h3>✓ QR코드 인식됨</h3>
+      <div class="qr-result-value" id="qr-value-a"></div>
+      <div class="qr-result-buttons">
+        <button class="btn-qr-confirm" onclick="confirmQrA()">이 값 사용</button>
+        <button class="btn-qr-rescan" onclick="rescanQrA()">다시 스캔</button>
+      </div>
+    </div>
+
+    <button class="btn-cancel" onclick="cancelScanA()">취소</button>
   </div>
 
+  <!-- 3단계: 수량 입력 -->
   <div id="step-3" class="screen">
     <h2>수량 등록</h2>
     <input type="text" id="input-qty" readonly placeholder="0">
@@ -82,12 +233,29 @@
     </div>
   </div>
 
+  <!-- 4단계: B 박스 QR 스캔 -->
   <div id="step-4" class="screen">
-    <h2>[B] 잔량 박스 스캔</h2>
-    <p>이동할 박스를 리딩하세요</p>
-    <input type="text" id="input-b" placeholder="클릭 후 스캔" autocomplete="off">
+    <h2>[B] 잔량 박스 QR 스캔</h2>
+    <p style="color: #666; margin-bottom: 15px;">잔량 박스의 QR코드를 카메라로 스캔하세요</p>
+
+    <div class="qr-scanner-wrapper">
+      <video id="qr-video-b"></video>
+      <p class="scan-status scanning" id="scan-status-b">스캔 중...</p>
+    </div>
+
+    <div class="qr-result-box" id="qr-result-b">
+      <h3>✓ QR코드 인식됨</h3>
+      <div class="qr-result-value" id="qr-value-b"></div>
+      <div class="qr-result-buttons">
+        <button class="btn-qr-confirm" onclick="confirmQrB()">이 값 사용</button>
+        <button class="btn-qr-rescan" onclick="rescanQrB()">다시 스캔</button>
+      </div>
+    </div>
+
+    <button class="btn-cancel" onclick="cancelScanB()">취소</button>
   </div>
 
+  <!-- 5단계: 판정 결과 -->
   <div id="step-5" class="screen">
     <h2>판정 결과</h2>
     <div id="result-display" class="result-box"></div>
@@ -101,6 +269,7 @@
 
     <button id="btn-finish" class="btn-finish" onclick="saveData()">완료 (서버 저장)</button>
   </div>
+
 </div>
 
 <div id="loading">저장 중...</div>
@@ -112,6 +281,10 @@
   const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbz-spORG3FgGC6E4moEsvUQe3UcZ-0Xs9Iq8lWrTeHgraS3HKYwQRmppMMQQpI_vhLW/exec";
 
   let appData = { worker: '', codeA: '', qty: '', codeB: '', result: '' };
+  let videoStreamA = null;
+  let videoStreamB = null;
+  let qrScannerA = null;
+  let qrScannerB = null;
 
   // 화면 전환
   function showScreen(id) {
@@ -119,46 +292,157 @@
     document.getElementById(id).classList.add('active');
   }
 
+  // ============================================
   // 1. 작업자 선택
+  // ============================================
   function selectWorker(name) {
     appData.worker = name;
-    document.getElementById('input-a').value = ''; 
     showScreen('step-2');
-    setTimeout(() => document.getElementById('input-a').focus(), 100);
+    setTimeout(() => startQrScanA(), 300);
   }
 
-  // 2. A 스캔 리스너 (엔터 감지)
-  document.getElementById('input-a').addEventListener('change', function() {
-    if(this.value.trim() !== "") {
-      appData.codeA = this.value.trim();
-      document.getElementById('input-qty').value = '';
-      showScreen('step-3');
-    }
-  });
+  // ============================================
+  // 2. A 박스 QR 스캔
+  // ============================================
+  function startQrScanA() {
+    const video = document.getElementById('qr-video');
+    startQrScanner(video, (qrData) => {
+      document.getElementById('qr-value-a').innerText = qrData;
+      document.getElementById('qr-result-a').classList.add('show');
+    });
+    videoStreamA = video.srcObject;
+    qrScannerA = setInterval(() => scanQrCode(video), 100);
+  }
 
-  // 3. 수량 키패드
-  function addQty(n) { document.getElementById('input-qty').value += n; }
-  function clearQty() { document.getElementById('input-qty').value = ''; }
+  function confirmQrA() {
+    appData.codeA = document.getElementById('qr-value-a').innerText;
+    stopQrScanA();
+    document.getElementById('input-qty').value = '';
+    showScreen('step-3');
+  }
+
+  function rescanQrA() {
+    document.getElementById('qr-result-a').classList.remove('show');
+    document.getElementById('qr-value-a').innerText = '';
+    startQrScanA();
+  }
+
+  function cancelScanA() {
+    stopQrScanA();
+    showScreen('step-1');
+  }
+
+  function stopQrScanA() {
+    if (videoStreamA) {
+      videoStreamA.getTracks().forEach(track => track.stop());
+    }
+    if (qrScannerA) {
+      clearInterval(qrScannerA);
+    }
+  }
+
+  // ============================================
+  // 3. 수량 입력 (키패드)
+  // ============================================
+  function addQty(n) { 
+    document.getElementById('input-qty').value += n; 
+  }
+  function clearQty() { 
+    document.getElementById('input-qty').value = ''; 
+  }
   function confirmQty() {
     const val = document.getElementById('input-qty').value;
-    if(!val) return alert("수량을 입력하세요");
+    if(!val) {
+      alert("수량을 입력하세요");
+      return;
+    }
     appData.qty = val;
-    document.getElementById('input-b').value = '';
     showScreen('step-4');
-    setTimeout(() => document.getElementById('input-b').focus(), 100);
+    setTimeout(() => startQrScanB(), 300);
   }
 
-  // 4. B 스캔 리스너
-  document.getElementById('input-b').addEventListener('change', function() {
-    if(this.value.trim() !== "") {
-      appData.codeB = this.value.trim();
-      compareAndShow();
-    }
-  });
+  // ============================================
+  // 4. B 박스 QR 스캔
+  // ============================================
+  function startQrScanB() {
+    const video = document.getElementById('qr-video-b');
+    startQrScanner(video, (qrData) => {
+      document.getElementById('qr-value-b').innerText = qrData;
+      document.getElementById('qr-result-b').classList.add('show');
+    });
+    videoStreamB = video.srcObject;
+    qrScannerB = setInterval(() => scanQrCode(video), 100);
+  }
 
-  // 5. 판정 로직
+  function confirmQrB() {
+    appData.codeB = document.getElementById('qr-value-b').innerText;
+    stopQrScanB();
+    compareAndShow();
+  }
+
+  function rescanQrB() {
+    document.getElementById('qr-result-b').classList.remove('show');
+    document.getElementById('qr-value-b').innerText = '';
+    startQrScanB();
+  }
+
+  function cancelScanB() {
+    stopQrScanB();
+    showScreen('step-3');
+  }
+
+  function stopQrScanB() {
+    if (videoStreamB) {
+      videoStreamB.getTracks().forEach(track => track.stop());
+    }
+    if (qrScannerB) {
+      clearInterval(qrScannerB);
+    }
+  }
+
+  // ============================================
+  // QR 코드 스캔 로직 (공통)
+  // ============================================
+  function startQrScanner(video, onDetect) {
+    navigator.mediaDevices.getUserMedia({ 
+      video: { facingMode: 'environment' } 
+    })
+    .then(stream => {
+      video.srcObject = stream;
+      video.play();
+    })
+    .catch(err => {
+      alert("카메라 접근이 거부되었습니다.\n설정에서 카메라 권한을 허용해주세요.");
+      console.error(err);
+    });
+  }
+
+  function scanQrCode(video) {
+    const canvas = document.createElement('canvas');
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    
+    if (canvas.width === 0 || canvas.height === 0) {
+      return; // 비디오가 아직 준비되지 않음
+    }
+
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(video, 0, 0);
+
+    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    const code = jsQR(imageData.data, canvas.width, canvas.height);
+
+    if (code) {
+      // QR 코드 감지됨 - 콜백 실행
+      // (콜백은 startQrScanner 호출 시 전달됨)
+    }
+  }
+
+  // ============================================
+  // 5. 판정 결과
+  // ============================================
   function compareAndShow() {
-    // 문자열 단순 비교 (필요시 substring 등으로 품번만 비교 가능)
+    // 문자열 단순 비교
     if(appData.codeA === appData.codeB) {
       appData.result = "OK";
       document.getElementById('result-display').innerHTML = '<span class="res-ok">OK</span>';
@@ -176,17 +460,17 @@
     showScreen('step-5');
   }
 
-  // 6. 구글 시트로 전송 (fetch API)
+  // ============================================
+  // 6. 서버 저장
+  // ============================================
   function saveData() {
     const btn = document.getElementById('btn-finish');
     const loading = document.getElementById('loading');
     
-    // 중복 클릭 방지
     if(btn.disabled) return;
     btn.disabled = true;
     loading.style.display = 'block';
 
-    // CORS 정책 우회를 위해 text/plain으로 전송하지만 내용은 JSON
     fetch(GOOGLE_SCRIPT_URL, {
       method: "POST",
       body: JSON.stringify(appData)
@@ -195,15 +479,15 @@
       if (!response.ok) {
         throw new Error('서버 응답 오류: ' + response.status);
       }
-      return response.text(); // 구글은 리다이렉트를 주므로 text로 1차 받음
+      return response.text();
     })
     .then(result => {
       alert("저장 완료!");
-      location.reload(); // 초기화
+      location.reload();
     })
     .catch(error => {
       console.error('Error:', error);
-      alert("저장 중 오류가 발생했습니다. (인터넷 연결 확인)");
+      alert("저장 중 오류가 발생했습니다.\n인터넷 연결을 확인해주세요.");
       btn.disabled = false;
       loading.style.display = 'none';
     });
@@ -213,4 +497,3 @@
 </body>
 
 </html>
-
