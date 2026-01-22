@@ -441,16 +441,16 @@
     if(appData.codeA === appData.codeB) {
       appData.result = "OK";
       document.getElementById('result-display').innerHTML = '<span class="res-ok">OK</span>';
-      // OK: 진동 2회 (200ms 진동, 100ms 쉬기, 200ms 진동)
+      // OK: 진동 2회 (200ms 진동, 500ms 쉬기, 200ms 진동)
       if (navigator.vibrate) {
-        navigator.vibrate([200, 100, 200]);
+        navigator.vibrate([200, 500, 200]);
       }
     } else {
       appData.result = "NG";
       document.getElementById('result-display').innerHTML = '<span class="res-ng">NG</span>';
-      // NG: 진동 5회 (100ms 진동, 100ms 쉬기 반복)
+      // NG: 진동 5회 (100ms 진동, 500ms 쉬기 반복)
       if (navigator.vibrate) {
-        navigator.vibrate([100, 100, 100, 100, 100, 100, 100, 100, 100]);
+        navigator.vibrate([100, 500, 100, 500, 100, 500, 100, 500, 100]);
       }
     }
     
