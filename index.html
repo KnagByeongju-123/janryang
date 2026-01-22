@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>잔량 혼입 방지 시스템</title>
+  <style>
+    /* 스타일: 모바일 터치 최적화 */
+    body { font-family: 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif; margin: 0; padding: 0; background-color: #f0f2f5; text-align: center; user-select: none; }
+    .container { max-width: 600px; margin: 0 auto; padding: 20px; background: white; min-height: 100vh; box-shadow: 0 0 15px rgba(0,0,0,0.1); }
+    h2 { margin-bottom: 20px; color: #333; font-size: 1.5rem; }
+    
+    .screen { display: none; animation: fadeIn 0.3s; }
+    .active { display: block; }
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+    /* 버튼들 */
+    .btn-worker { width: 100%; padding: 25px; margin: 8px 0; font-size: 1.2rem; cursor: pointer; background: #4a90e2; color: white; border: none; border-radius: 12px; transition: background 0.2s; }
+    .btn-worker:active { background: #357abd; transform: scale(0.98); }
+    
+    /* 입력창 */
+    input[type="text"] { width: 90%; padding: 15px; font-size: 1.5rem; text-align: center; border: 2px solid #ddd; border-radius: 8px; margin-bottom: 20px; background: #fafafa; }
+    input:focus { border-color: #4a90e2; outline: none; background: #fff; }
+
+    /* 키패드 */
+    .keypad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 10px; }
+    .key-btn { padding: 20px; font-size: 1.5rem; background: #f8f9fa; border: 1px solid #dee2e6; border-radius: 8px; cursor: pointer; }
+    .key-btn:active { background: #e2e6ea; }
+    .key-confirm { grid-column: span 3; background: #28a745; color: white; font-weight: bold; }
+    
+    /* 결과창 */
+    .result-box { font-size: 5rem; font-weight: bold; margin: 40px 0; }
+    .res-ok { color: #28a745; }
+    .res-ng { color: #dc3545; }
+    
+    /* 상세 정보 박스 */
+    .info-box { background: #f1f3f5; padding: 20px; border-radius: 10px; text-align: left; margin-bottom: 20px; font-size: 1.1rem; line-height: 1.6; }
+    .info-box span { font-weight: bold; color: #333; float: right; }
+
+    .btn-finish { width: 100%; padding: 20px; font-size: 1.3rem; background: #6c757d; color: white; border: none; border-radius: 8px; cursor: pointer; }
+    
+    /* 로딩 오버레이 */
+    #loading { display: none; position: fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); color:white; font-size:2rem; padding-top:50%; z-index:999; }
+  </style>
+</head>
+<body>
+
+<div class="container">
+
+  <div id="step-1" class="screen active">
+    <h2>작업자 선택</h2>
+    <div id="worker-list">
+      <button class="btn-worker" onclick="selectWorker('김철수')">김철수</button>
+      <button class="btn-worker" onclick="selectWorker('이영희')">이영희</button>
+      <button class="btn-worker" onclick="selectWorker('박민수')">박민수</button>
+      <button class="btn-worker" onclick="selectWorker('관리자')">관리자</button>
+    </div>
+  </div>
+
+  <div id="step-2" class="screen">
+    <h2>[A] 원본 박스 스캔</h2>
+    <p>바코드를 리딩하세요</p>
+    <input type="text" id="input-a" placeholder="클릭 후 스캔" autocomplete="off">
+  </div>
+
+  <div id="step-3" class="screen">
+    <h2>수량 등록</h2>
+    <input type="text" id="input-qty" readonly placeholder="0">
+    <div class="keypad">
+      <button class="key-btn" onclick="addQty(1)">1</button>
+      <button class="key-btn" onclick="addQty(2)">2</button>
+      <button class="key-btn" onclick="addQty(3)">3</button>
+      <button class="key-btn" onclick="addQty(4)">4</button>
+      <button class="key-btn" onclick="addQty(5)">5</button>
+      <button class="key-btn" onclick="addQty(6)">6</button>
+      <button class="key-btn" onclick="addQty(7)">7</button>
+      <button class="key-btn" onclick="addQty(8)">8</button>
+      <button class="key-btn" onclick="addQty(9)">9</button>
+      <button class="key-btn" onclick="clearQty()">C</button>
+      <button class="key-btn" onclick="addQty(0)">0</button>
+      <button class="key-btn key-confirm" onclick="confirmQty()">입력 완료</button>
+    </div>
+  </div>
+
+  <div id="step-4" class="screen">
+    <h2>[B] 잔량 박스 스캔</h2>
+    <p>이동할 박스를 리딩하세요</p>
+    <input type="text" id="input-b" placeholder="클릭 후 스캔" autocomplete="off">
+  </div>
+
+  <div id="step-5" class="screen">
+    <h2>판정 결과</h2>
+    <div id="result-display" class="result-box"></div>
+    
+    <div class="info-box">
+      <div>작업자 <span id="disp-worker"></span></div>
+      <div>원본(A) <span id="disp-a"></span></div>
+      <div>대상(B) <span id="disp-b"></span></div>
+      <div>수량 <span id="disp-qty"></span></div>
+    </div>
+
+    <button id="btn-finish" class="btn-finish" onclick="saveData()">완료 (서버 저장)</button>
+  </div>
+</div>
+
+<div id="loading">저장 중...</div>
+
+<script>
+  // -----------------------------------------------------------
+  // [설정] 아래 URL을 1단계에서 복사한 '웹 앱 URL'로 교체하세요
+  // -----------------------------------------------------------
+  const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/xxxxxxxxxxxxxxxxx/exec";
+
+  let appData = { worker: '', codeA: '', qty: '', codeB: '', result: '' };
+
+  // 화면 전환
+  function showScreen(id) {
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+  }
+
+  // 1. 작업자 선택
+  function selectWorker(name) {
+    appData.worker = name;
+    document.getElementById('input-a').value = ''; 
+    showScreen('step-2');
+    setTimeout(() => document.getElementById('input-a').focus(), 100);
+  }
+
+  // 2. A 스캔 리스너 (엔터 감지)
+  document.getElementById('input-a').addEventListener('change', function() {
+    if(this.value.trim() !== "") {
+      appData.codeA = this.value.trim();
+      document.getElementById('input-qty').value = '';
+      showScreen('step-3');
+    }
+  });
+
+  // 3. 수량 키패드
+  function addQty(n) { document.getElementById('input-qty').value += n; }
+  function clearQty() { document.getElementById('input-qty').value = ''; }
+  function confirmQty() {
+    const val = document.getElementById('input-qty').value;
+    if(!val) return alert("수량을 입력하세요");
+    appData.qty = val;
+    document.getElementById('input-b').value = '';
+    showScreen('step-4');
+    setTimeout(() => document.getElementById('input-b').focus(), 100);
+  }
+
+  // 4. B 스캔 리스너
+  document.getElementById('input-b').addEventListener('change', function() {
+    if(this.value.trim() !== "") {
+      appData.codeB = this.value.trim();
+      compareAndShow();
+    }
+  });
+
+  // 5. 판정 로직
+  function compareAndShow() {
+    // 문자열 단순 비교 (필요시 substring 등으로 품번만 비교 가능)
+    if(appData.codeA === appData.codeB) {
+      appData.result = "OK";
+      document.getElementById('result-display').innerHTML = '<span class="res-ok">OK</span>';
+    } else {
+      appData.result = "NG";
+      document.getElementById('result-display').innerHTML = '<span class="res-ng">NG</span>';
+    }
+    
+    // 정보 표시
+    document.getElementById('disp-worker').innerText = appData.worker;
+    document.getElementById('disp-a').innerText = appData.codeA;
+    document.getElementById('disp-b').innerText = appData.codeB;
+    document.getElementById('disp-qty').innerText = appData.qty;
+    
+    showScreen('step-5');
+  }
+
+  // 6. 구글 시트로 전송 (fetch API)
+  function saveData() {
+    const btn = document.getElementById('btn-finish');
+    const loading = document.getElementById('loading');
+    
+    // 중복 클릭 방지
+    if(btn.disabled) return;
+    btn.disabled = true;
+    loading.style.display = 'block';
+
+    // CORS 정책 우회를 위해 text/plain으로 전송하지만 내용은 JSON
+    fetch(GOOGLE_SCRIPT_URL, {
+      method: "POST",
+      body: JSON.stringify(appData)
+    })
+    .then(response => response.text()) // 구글은 리다이렉트를 주므로 text로 1차 받음
+    .then(result => {
+      alert("저장 완료!");
+      location.reload(); // 초기화
+    })
+    .catch(error => {
+      console.error('Error:', error);
+      alert("저장 중 오류가 발생했습니다. (인터넷 연결 확인)");
+      btn.disabled = false;
+      loading.style.display = 'none';
+    });
+  }
+</script>
+
+</body>
+</html>
