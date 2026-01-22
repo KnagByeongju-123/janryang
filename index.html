@@ -20,111 +20,138 @@
     .btn-worker:active { background: #357abd; transform: scale(0.98); }
     
     #worker-list { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-    
-    /* QR 스캔 영역 */
-    .qr-scanner-wrapper { 
-      display: flex; 
-      flex-direction: column; 
-      align-items: center; 
-      margin: 20px 0;
+
+    /* QR 모달 오버레이 */
+    #qr-modal {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.9);
+      display: none;
+      justify-content: center;
+      align-items: center;
+      z-index: 1000;
     }
 
-    #preview {
-      width: 100%;
-      max-width: 350px;
-      height: 350px;
-      border: 3px solid #4a90e2;
+    #qr-modal-content {
+      background: white;
+      padding: 20px;
       border-radius: 12px;
+      position: relative;
+      max-width: 450px;
+      width: 90%;
+      max-height: 90vh;
+      overflow-y: auto;
+    }
+
+    #preview-container {
+      width: 100%;
+      height: 400px;
+      border: 3px solid #4a90e2;
+      border-radius: 8px;
       background: #000;
       margin-bottom: 15px;
     }
 
-    /* QR 인식 결과 표시 */
-    .qr-result-box { 
-      background: #e8f5e9; 
-      border: 2px solid #4caf50; 
-      padding: 15px; 
-      border-radius: 8px; 
-      margin: 15px 0; 
+    .qr-modal-title {
+      font-size: 1.3rem;
+      font-weight: bold;
+      margin-bottom: 15px;
+      color: #333;
+    }
+
+    .qr-scan-info {
+      color: #666;
+      font-size: 0.95rem;
+      margin-bottom: 15px;
+    }
+
+    #closeQrModal {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      background: #dc3545;
+      color: white;
+      border: none;
+      border-radius: 50%;
+      width: 45px;
+      height: 45px;
+      cursor: pointer;
+      font-size: 24px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+      z-index: 1001;
+    }
+
+    #closeQrModal:active {
+      transform: scale(0.95);
+    }
+
+    /* QR 인식 결과 박스 */
+    .qr-result-display {
+      background: #e8f5e9;
+      border: 2px solid #4caf50;
+      padding: 15px;
+      border-radius: 8px;
+      margin-bottom: 15px;
       display: none;
     }
 
-    .qr-result-box.show { display: block; }
-    .qr-result-box h3 { margin: 0 0 10px 0; color: #2e7d32; }
-    .qr-result-value { 
-      font-size: 1.3rem; 
-      font-weight: bold; 
-      color: #1565c0; 
+    .qr-result-display.show {
+      display: block;
+    }
+
+    .qr-result-display h3 {
+      margin: 0 0 10px 0;
+      color: #2e7d32;
+      font-size: 1.1rem;
+    }
+
+    .qr-result-value {
+      font-size: 1.2rem;
+      font-weight: bold;
+      color: #1565c0;
       word-break: break-all;
-      margin-bottom: 15px;
       padding: 10px;
       background: #f5f5f5;
       border-radius: 6px;
+      margin-bottom: 15px;
     }
 
-    .qr-result-buttons { 
-      display: flex; 
-      gap: 10px; 
+    .qr-modal-buttons {
+      display: flex;
+      gap: 10px;
       justify-content: center;
     }
 
-    .btn-qr-confirm, .btn-qr-rescan { 
-      flex: 1; 
-      padding: 12px; 
-      font-size: 1rem; 
-      border: none; 
-      border-radius: 8px; 
-      cursor: pointer; 
+    .btn-qr-use, .btn-qr-retry {
+      flex: 1;
+      padding: 12px;
+      font-size: 1rem;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
       font-weight: bold;
     }
 
-    .btn-qr-confirm { 
-      background: #4caf50; 
-      color: white; 
+    .btn-qr-use {
+      background: #4caf50;
+      color: white;
     }
 
-    .btn-qr-confirm:active {
+    .btn-qr-use:active {
       background: #3d8b40;
       transform: scale(0.98);
     }
 
-    .btn-qr-rescan { 
-      background: #ff9800; 
-      color: white; 
+    .btn-qr-retry {
+      background: #ff9800;
+      color: white;
     }
 
-    .btn-qr-rescan:active {
+    .btn-qr-retry:active {
       background: #e68900;
-      transform: scale(0.98);
-    }
-
-    /* 스캔 상태 텍스트 */
-    .scan-status { 
-      font-size: 0.95rem; 
-      color: #666; 
-      margin: 10px 0;
-    }
-
-    .scan-status.scanning { 
-      color: #4a90e2; 
-      font-weight: bold;
-    }
-
-    /* 취소 버튼 */
-    .btn-cancel { 
-      width: 100%; 
-      padding: 15px; 
-      font-size: 1.1rem; 
-      background: #dc3545; 
-      color: white; 
-      border: none; 
-      border-radius: 8px; 
-      cursor: pointer; 
-      margin-top: 10px;
-    }
-
-    .btn-cancel:active { 
-      background: #c82333; 
       transform: scale(0.98);
     }
 
@@ -152,17 +179,6 @@
     
     /* 로딩 오버레이 */
     #loading { display: none; position: fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); color:white; font-size:2rem; padding-top:50%; z-index:999; }
-
-    /* 카메라 권한 요청 메시지 */
-    .permission-message {
-      background: #fff3cd;
-      border: 1px solid #ffc107;
-      padding: 15px;
-      border-radius: 8px;
-      margin: 15px 0;
-      color: #856404;
-      font-size: 0.95rem;
-    }
   </style>
 </head>
 <body>
@@ -187,27 +203,9 @@
   <!-- 2단계: A 박스 QR 스캔 -->
   <div id="step-2" class="screen">
     <h2>[A] 원본 박스 QR 스캔</h2>
-    <p style="color: #666; margin-bottom: 15px;">원본 박스의 QR코드를 카메라로 스캔하세요</p>
-    
-    <div class="permission-message">
-      📱 첫 스캔 시 카메라 권한 요청이 나타납니다. '허용'을 선택해주세요.
-    </div>
-
-    <div class="qr-scanner-wrapper">
-      <div id="preview"></div>
-      <p class="scan-status scanning" id="scan-status-a">스캔 중...</p>
-    </div>
-
-    <div class="qr-result-box" id="qr-result-a">
-      <h3>✓ QR코드 인식됨</h3>
-      <div class="qr-result-value" id="qr-value-a"></div>
-      <div class="qr-result-buttons">
-        <button class="btn-qr-confirm" onclick="confirmQrA()">이 값 사용</button>
-        <button class="btn-qr-rescan" onclick="rescanQrA()">다시 스캔</button>
-      </div>
-    </div>
-
-    <button class="btn-cancel" onclick="cancelScanA()">취소</button>
+    <p style="color: #666; margin-bottom: 15px;">원본 박스의 QR코드를 스캔하세요</p>
+    <button class="btn-finish" onclick="openQrScannerA()" style="background: #4a90e2;">📱 QR 스캔 시작</button>
+    <button class="btn-finish" onclick="goBackToStep1()" style="background: #dc3545; margin-top: 10px;">취소</button>
   </div>
 
   <!-- 3단계: 수량 입력 -->
@@ -233,23 +231,9 @@
   <!-- 4단계: B 박스 QR 스캔 -->
   <div id="step-4" class="screen">
     <h2>[B] 잔량 박스 QR 스캔</h2>
-    <p style="color: #666; margin-bottom: 15px;">잔량 박스의 QR코드를 카메라로 스캔하세요</p>
-
-    <div class="qr-scanner-wrapper">
-      <div id="preview-b"></div>
-      <p class="scan-status scanning" id="scan-status-b">스캔 중...</p>
-    </div>
-
-    <div class="qr-result-box" id="qr-result-b">
-      <h3>✓ QR코드 인식됨</h3>
-      <div class="qr-result-value" id="qr-value-b"></div>
-      <div class="qr-result-buttons">
-        <button class="btn-qr-confirm" onclick="confirmQrB()">이 값 사용</button>
-        <button class="btn-qr-rescan" onclick="rescanQrB()">다시 스캔</button>
-      </div>
-    </div>
-
-    <button class="btn-cancel" onclick="cancelScanB()">취소</button>
+    <p style="color: #666; margin-bottom: 15px;">잔량 박스의 QR코드를 스캔하세요</p>
+    <button class="btn-finish" onclick="openQrScannerB()" style="background: #4a90e2;">📱 QR 스캔 시작</button>
+    <button class="btn-finish" onclick="goBackToStep3()" style="background: #dc3545; margin-top: 10px;">취소</button>
   </div>
 
   <!-- 5단계: 판정 결과 -->
@@ -269,17 +253,37 @@
 
 </div>
 
+<!-- QR 스캔 모달 -->
+<div id="qr-modal">
+  <div id="qr-modal-content">
+    <button id="closeQrModal" onclick="closeQrModal()">&times;</button>
+    <div class="qr-modal-title">QR 코드 스캔</div>
+    <p class="qr-scan-info">카메라로 QR코드를 읽어주세요</p>
+    <div id="preview-container"></div>
+    
+    <div class="qr-result-display" id="qr-result-display">
+      <h3>✓ QR코드 인식됨</h3>
+      <div class="qr-result-value" id="qr-result-text"></div>
+      <div class="qr-modal-buttons">
+        <button class="btn-qr-use" onclick="useQrValue()">이 값 사용</button>
+        <button class="btn-qr-retry" onclick="retryQrScan()">다시 스캔</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <div id="loading">저장 중...</div>
 
 <script>
   // -----------------------------------------------------------
-  // [설정] 아래 URL을 1단계에서 복사한 '웹 앱 URL'로 교체하세요
+  // [설정] 아래 URL을 Google Apps Script 웹 앱 URL로 교체하세요
   // -----------------------------------------------------------
   const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbz-spORG3FgGC6E4moEsvUQe3UcZ-0Xs9Iq8lWrTeHgraS3HKYwQRmppMMQQpI_vhLW/exec";
 
   let appData = { worker: '', codeA: '', qty: '', codeB: '', result: '' };
-  let html5QrCodeScannerA = null;
-  let html5QrCodeScannerB = null;
+  let html5QrCodeScanner = null;
+  let currentScanTarget = null; // 'A' 또는 'B'
+  let lastQrCode = null;
 
   // 화면 전환
   function showScreen(id) {
@@ -293,72 +297,21 @@
   function selectWorker(name) {
     appData.worker = name;
     showScreen('step-2');
-    setTimeout(() => startQrScanA(), 300);
   }
 
   // ============================================
   // 2. A 박스 QR 스캔
   // ============================================
-  function startQrScanA() {
-    const previewId = "preview";
-    
-    try {
-      html5QrCodeScannerA = new Html5Qrcode(previewId);
-      html5QrCodeScannerA.start(
-        { facingMode: "environment" },
-        { fps: 10, qrbox: { width: 300, height: 300 } },
-        (decodedText) => {
-          if (decodedText && decodedText.trim()) {
-            // QR 스캔 감지
-            document.getElementById('qr-value-a').innerText = decodedText;
-            document.getElementById('qr-result-a').classList.add('show');
-            html5QrCodeScannerA.pause();
-          }
-        },
-        (errorMessage) => {
-          // 무시 - 계속 스캔
-        }
-      ).catch(err => {
-        alert("카메라 접근이 거부되었습니다.\n설정에서 카메라 권한을 허용해주세요.");
-        console.error(err);
-        cancelScanA();
-      });
-    } catch (err) {
-      alert("QR 스캐너 초기화 실패");
-      console.error(err);
-      cancelScanA();
-    }
+  function openQrScannerA() {
+    currentScanTarget = 'A';
+    lastQrCode = null;
+    document.getElementById('qr-result-display').classList.remove('show');
+    document.getElementById('qr-result-text').innerText = '';
+    openQrModal();
   }
 
-  function confirmQrA() {
-    appData.codeA = document.getElementById('qr-value-a').innerText;
-    stopQrScanA();
-    document.getElementById('input-qty').value = '';
-    showScreen('step-3');
-  }
-
-  function rescanQrA() {
-    document.getElementById('qr-result-a').classList.remove('show');
-    document.getElementById('qr-value-a').innerText = '';
-    if (html5QrCodeScannerA) {
-      html5QrCodeScannerA.resume();
-    }
-  }
-
-  function cancelScanA() {
-    stopQrScanA();
+  function goBackToStep1() {
     showScreen('step-1');
-  }
-
-  function stopQrScanA() {
-    if (html5QrCodeScannerA) {
-      html5QrCodeScannerA.stop()
-        .then(() => {
-          html5QrCodeScannerA.clear();
-          html5QrCodeScannerA = null;
-        })
-        .catch(err => console.error("스캔 중지 오류:", err));
-    }
   }
 
   // ============================================
@@ -378,70 +331,102 @@
     }
     appData.qty = val;
     showScreen('step-4');
-    setTimeout(() => startQrScanB(), 300);
   }
 
   // ============================================
   // 4. B 박스 QR 스캔
   // ============================================
-  function startQrScanB() {
-    const previewId = "preview-b";
+  function openQrScannerB() {
+    currentScanTarget = 'B';
+    lastQrCode = null;
+    document.getElementById('qr-result-display').classList.remove('show');
+    document.getElementById('qr-result-text').innerText = '';
+    openQrModal();
+  }
+
+  function goBackToStep3() {
+    showScreen('step-3');
+  }
+
+  // ============================================
+  // QR 모달 제어
+  // ============================================
+  function openQrModal() {
+    document.getElementById('qr-modal').style.display = 'flex';
+    startQrScanner();
+  }
+
+  function closeQrModal() {
+    stopQrScanner();
+    document.getElementById('qr-modal').style.display = 'none';
+  }
+
+  // ============================================
+  // QR 스캔 시작/종료
+  // ============================================
+  function startQrScanner() {
+    const previewId = 'preview-container';
     
     try {
-      html5QrCodeScannerB = new Html5Qrcode(previewId);
-      html5QrCodeScannerB.start(
+      html5QrCodeScanner = new Html5Qrcode(previewId);
+      html5QrCodeScanner.start(
         { facingMode: "environment" },
         { fps: 10, qrbox: { width: 300, height: 300 } },
         (decodedText) => {
-          if (decodedText && decodedText.trim()) {
-            // QR 스캔 감지
-            document.getElementById('qr-value-b').innerText = decodedText;
-            document.getElementById('qr-result-b').classList.add('show');
-            html5QrCodeScannerB.pause();
+          // QR 코드가 감지되면 결과 표시
+          if (decodedText && decodedText !== lastQrCode) {
+            lastQrCode = decodedText;
+            document.getElementById('qr-result-text').innerText = decodedText;
+            document.getElementById('qr-result-display').classList.add('show');
+            html5QrCodeScanner.pause(); // 스캔 일시 중지
           }
         },
         (errorMessage) => {
           // 무시 - 계속 스캔
         }
       ).catch(err => {
-        alert("카메라 접근이 거부되었습니다.\n설정에서 카메라 권한을 허용해주세요.");
+        alert("카메라 접근 오류: " + err);
         console.error(err);
-        cancelScanB();
+        closeQrModal();
       });
     } catch (err) {
-      alert("QR 스캐너 초기화 실패");
+      alert("QR 스캐너 초기화 실패: " + err);
       console.error(err);
-      cancelScanB();
+      closeQrModal();
     }
   }
 
-  function confirmQrB() {
-    appData.codeB = document.getElementById('qr-value-b').innerText;
-    stopQrScanB();
-    compareAndShow();
-  }
-
-  function rescanQrB() {
-    document.getElementById('qr-result-b').classList.remove('show');
-    document.getElementById('qr-value-b').innerText = '';
-    if (html5QrCodeScannerB) {
-      html5QrCodeScannerB.resume();
-    }
-  }
-
-  function cancelScanB() {
-    stopQrScanB();
-    showScreen('step-3');
-  }
-
-  function stopQrScanB() {
-    if (html5QrCodeScannerB) {
-      html5QrCodeScannerB.stop()
+  function stopQrScanner() {
+    if (html5QrCodeScanner) {
+      html5QrCodeScanner.stop()
         .then(() => {
-          html5QrCodeScannerB.clear();
-          html5QrCodeScannerB = null;
+          html5QrCodeScanner.clear();
+          html5QrCodeScanner = null;
         })
         .catch(err => console.error("스캔 중지 오류:", err));
+    }
+  }
+
+  function useQrValue() {
+    const qrValue = document.getElementById('qr-result-text').innerText;
+    
+    if (currentScanTarget === 'A') {
+      appData.codeA = qrValue;
+      closeQrModal();
+      showScreen('step-3');
+    } else if (currentScanTarget === 'B') {
+      appData.codeB = qrValue;
+      closeQrModal();
+      compareAndShow();
+    }
+  }
+
+  function retryQrScan() {
+    document.getElementById('qr-result-display').classList.remove('show');
+    document.getElementById('qr-result-text').innerText = '';
+    lastQrCode = null;
+    if (html5QrCodeScanner) {
+      html5QrCodeScanner.resume();
     }
   }
 
@@ -499,6 +484,13 @@
       loading.style.display = 'none';
     });
   }
+
+  // 모달 바깥 영역 클릭 시 닫기
+  document.getElementById('qr-modal').addEventListener('click', function(e) {
+    if (e.target === this) {
+      closeQrModal();
+    }
+  });
 </script>
 
 </body>
