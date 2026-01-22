@@ -191,7 +191,12 @@
       method: "POST",
       body: JSON.stringify(appData)
     })
-    .then(response => response.text()) // 구글은 리다이렉트를 주므로 text로 1차 받음
+    .then(response => {
+      if (!response.ok) {
+        throw new Error('서버 응답 오류: ' + response.status);
+      }
+      return response.text(); // 구글은 리다이렉트를 주므로 text로 1차 받음
+    })
     .then(result => {
       alert("저장 완료!");
       location.reload(); // 초기화
