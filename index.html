@@ -21,6 +21,16 @@
     
     #worker-list { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
 
+    /* 작업 선택 버튼 */
+    .btn-action { width: 100%; padding: 25px; margin: 10px 0; font-size: 1.2rem; cursor: pointer; background: #4a90e2; color: white; border: none; border-radius: 8px; transition: background 0.2s; font-weight: bold; }
+    .btn-action:active { background: #357abd; transform: scale(0.98); }
+    
+    .btn-action.upload { background: #17a2b8; }
+    .btn-action.upload:active { background: #138496; }
+    
+    .btn-action.use { background: #6f42c1; }
+    .btn-action.use:active { background: #5a32a3; }
+
     /* QR 모달 오버레이 */
     #qr-modal {
       position: fixed;
@@ -63,12 +73,6 @@
       font-weight: bold;
       margin-bottom: 15px;
       color: #333;
-    }
-
-    .qr-scan-info {
-      color: #666;
-      font-size: 0.95rem;
-      margin-bottom: 10px;
     }
 
     #closeQrModal {
@@ -205,16 +209,25 @@
     </div>
   </div>
 
-  <!-- 2단계: A 박스 QR 스캔 -->
+  <!-- 2단계: 작업 유형 선택 -->
   <div id="step-2" class="screen">
-    <h2>[A] 원본 박스 QR 스캔</h2>
-    <p style="color: #666; margin-bottom: 15px;">원본 박스의 QR코드를 스캔하세요</p>
-    <button class="btn-finish" onclick="openQrScannerA()" style="background: #4a90e2;">📱 QR 스캔 시작</button>
-    <button class="btn-finish" onclick="goBackToStep1()" style="background: #dc3545; margin-top: 10px;">취소</button>
+    <h2>작업 유형 선택</h2>
+    <p style="color: #666; margin-bottom: 20px;">수행할 작업을 선택하세요</p>
+    <button class="btn-action upload" onclick="selectActionType('투입')">📥 잔량박스에 투입</button>
+    <button class="btn-action use" onclick="selectActionType('사용')">📤 잔량품 사용</button>
+    <button class="btn-finish" onclick="goBackToStep1()" style="background: #dc3545; margin-top: 20px;">취소</button>
   </div>
 
-  <!-- 3단계: 수량 입력 -->
+  <!-- 3단계: Start QR 스캔 -->
   <div id="step-3" class="screen">
+    <h2 id="step3-title">시작 QR 스캔</h2>
+    <p style="color: #666; margin-bottom: 15px;">시작 QR코드를 스캔하세요</p>
+    <button class="btn-finish" onclick="openQrScannerStart()" style="background: #4a90e2;">📱 QR 스캔 시작</button>
+    <button class="btn-finish" onclick="goBackToStep2()" style="background: #dc3545; margin-top: 10px;">취소</button>
+  </div>
+
+  <!-- 4단계: 수량 입력 -->
+  <div id="step-4" class="screen">
     <h2>수량 등록</h2>
     <input type="text" id="input-qty" readonly placeholder="0">
     <div class="keypad">
@@ -233,23 +246,24 @@
     </div>
   </div>
 
-  <!-- 4단계: B 박스 QR 스캔 -->
-  <div id="step-4" class="screen">
-    <h2>[B] 잔량 박스 QR 스캔</h2>
-    <p style="color: #666; margin-bottom: 15px;">잔량 박스의 QR코드를 스캔하세요</p>
-    <button class="btn-finish" onclick="openQrScannerB()" style="background: #4a90e2;">📱 QR 스캔 시작</button>
-    <button class="btn-finish" onclick="goBackToStep3()" style="background: #dc3545; margin-top: 10px;">취소</button>
+  <!-- 5단계: End QR 스캔 -->
+  <div id="step-5" class="screen">
+    <h2 id="step5-title">종료 QR 스캔</h2>
+    <p style="color: #666; margin-bottom: 15px;">종료 QR코드를 스캔하세요</p>
+    <button class="btn-finish" onclick="openQrScannerEnd()" style="background: #4a90e2;">📱 QR 스캔 시작</button>
+    <button class="btn-finish" onclick="goBackToStep4()" style="background: #dc3545; margin-top: 10px;">취소</button>
   </div>
 
-  <!-- 5단계: 판정 결과 -->
-  <div id="step-5" class="screen">
+  <!-- 6단계: 판정 결과 -->
+  <div id="step-6" class="screen">
     <h2>판정 결과</h2>
     <div id="result-display" class="result-box"></div>
     
     <div class="info-box">
       <div>작업자 <span id="disp-worker"></span></div>
-      <div>원본(A) <span id="disp-a"></span></div>
-      <div>대상(B) <span id="disp-b"></span></div>
+      <div>작업 유형 <span id="disp-action"></span></div>
+      <div>시작 QR <span id="disp-start"></span></div>
+      <div>종료 QR <span id="disp-end"></span></div>
       <div>수량 <span id="disp-qty"></span></div>
     </div>
 
@@ -283,9 +297,9 @@
   // -----------------------------------------------------------
   const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbz-spORG3FgGC6E4moEsvUQe3UcZ-0Xs9Iq8lWrTeHgraS3HKYwQRmppMMQQpI_vhLW/exec";
 
-  let appData = { worker: '', codeA: '', qty: '', codeB: '', result: '' };
+  let appData = { worker: '', actionType: '', codeStart: '', qty: '', codeEnd: '', result: '' };
   let html5QrCodeScanner = null;
-  let currentScanTarget = null; // 'A' 또는 'B'
+  let currentScanTarget = null; // 'START' 또는 'END'
   let lastQrCode = null;
 
   // 화면 전환
@@ -302,23 +316,37 @@
     showScreen('step-2');
   }
 
+  function goBackToStep1() {
+    showScreen('step-1');
+  }
+
   // ============================================
-  // 2. A 박스 QR 스캔
+  // 2. 작업 유형 선택
   // ============================================
-  function openQrScannerA() {
-    currentScanTarget = 'A';
+  function selectActionType(type) {
+    appData.actionType = type;
+    const title = type === '투입' ? '[투입] 시작 QR 스캔' : '[사용] 시작 QR 스캔';
+    document.getElementById('step3-title').innerText = title;
+    showScreen('step-3');
+  }
+
+  function goBackToStep2() {
+    showScreen('step-2');
+  }
+
+  // ============================================
+  // 3. Start QR 스캔
+  // ============================================
+  function openQrScannerStart() {
+    currentScanTarget = 'START';
     lastQrCode = null;
     document.getElementById('qr-result-display').classList.remove('show');
     document.getElementById('qr-result-text').innerText = '';
     openQrModal();
   }
 
-  function goBackToStep1() {
-    showScreen('step-1');
-  }
-
   // ============================================
-  // 3. 수량 입력 (키패드)
+  // 4. 수량 입력 (키패드)
   // ============================================
   function addQty(n) { 
     document.getElementById('input-qty').value += n; 
@@ -333,22 +361,25 @@
       return;
     }
     appData.qty = val;
+    
+    const title = appData.actionType === '투입' ? '[투입] 종료 QR 스캔' : '[사용] 종료 QR 스캔';
+    document.getElementById('step5-title').innerText = title;
+    showScreen('step-5');
+  }
+
+  function goBackToStep4() {
     showScreen('step-4');
   }
 
   // ============================================
-  // 4. B 박스 QR 스캔
+  // 5. End QR 스캔
   // ============================================
-  function openQrScannerB() {
-    currentScanTarget = 'B';
+  function openQrScannerEnd() {
+    currentScanTarget = 'END';
     lastQrCode = null;
     document.getElementById('qr-result-display').classList.remove('show');
     document.getElementById('qr-result-text').innerText = '';
     openQrModal();
-  }
-
-  function goBackToStep3() {
-    showScreen('step-3');
   }
 
   // ============================================
@@ -413,12 +444,12 @@
   function useQrValue() {
     const qrValue = document.getElementById('qr-result-text').innerText;
     
-    if (currentScanTarget === 'A') {
-      appData.codeA = qrValue;
+    if (currentScanTarget === 'START') {
+      appData.codeStart = qrValue;
       closeQrModal();
-      showScreen('step-3');
-    } else if (currentScanTarget === 'B') {
-      appData.codeB = qrValue;
+      showScreen('step-4');
+    } else if (currentScanTarget === 'END') {
+      appData.codeEnd = qrValue;
       closeQrModal();
       compareAndShow();
     }
@@ -434,11 +465,11 @@
   }
 
   // ============================================
-  // 5. 판정 결과
+  // 6. 판정 결과
   // ============================================
   function compareAndShow() {
     // 문자열 단순 비교
-    if(appData.codeA === appData.codeB) {
+    if(appData.codeStart === appData.codeEnd) {
       appData.result = "OK";
       document.getElementById('result-display').innerHTML = '<span class="res-ok">OK</span>';
       // OK: 진동 2회 (200ms 진동, 500ms 쉬기, 200ms 진동)
@@ -456,15 +487,16 @@
     
     // 정보 표시
     document.getElementById('disp-worker').innerText = appData.worker;
-    document.getElementById('disp-a').innerText = appData.codeA;
-    document.getElementById('disp-b').innerText = appData.codeB;
+    document.getElementById('disp-action').innerText = appData.actionType;
+    document.getElementById('disp-start').innerText = appData.codeStart;
+    document.getElementById('disp-end').innerText = appData.codeEnd;
     document.getElementById('disp-qty').innerText = appData.qty;
     
-    showScreen('step-5');
+    showScreen('step-6');
   }
 
   // ============================================
-  // 6. 서버 저장
+  // 7. 서버 저장
   // ============================================
   function saveData() {
     const btn = document.getElementById('btn-finish');
