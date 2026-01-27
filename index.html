@@ -213,7 +213,7 @@
   <div id="step-2" class="screen">
     <h2>작업 유형 선택</h2>
     <p style="color: #666; margin-bottom: 20px;">수행할 작업을 선택하세요</p>
-    <button class="btn-action upload" onclick="selectActionType('투입')">📥 잔량박스에 보관</button>
+    <button class="btn-action upload" onclick="selectActionType('보관')">📥 잔량박스에 보관</button>
     <button class="btn-action use" onclick="selectActionType('사용')">📤 잔량품 사용</button>
     <button class="btn-finish" onclick="goBackToStep1()" style="background: #dc3545; margin-top: 20px;">취소</button>
   </div>
@@ -325,7 +325,7 @@
   // ============================================
   function selectActionType(type) {
     appData.actionType = type;
-    const title = type === '투입' ? '[투입] 시작 QR 스캔' : '[사용] 시작 QR 스캔';
+    const title = type === '보관' ? '[보관] 시작 QR 스캔' : '[사용] 시작 QR 스캔';
     document.getElementById('step3-title').innerText = title;
     showScreen('step-3');
   }
@@ -362,7 +362,7 @@
     }
     appData.qty = val;
     
-    const title = appData.actionType === '투입' ? '[투입] 종료 QR 스캔' : '[사용] 종료 QR 스캔';
+    const title = appData.actionType === '보관' ? '[보관] 종료 QR 스캔' : '[사용] 종료 QR 스캔';
     document.getElementById('step5-title').innerText = title;
     showScreen('step-5');
   }
@@ -539,5 +539,6 @@
 </body>
 
 </html>
+
 
 
