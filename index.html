@@ -508,15 +508,10 @@
 
     fetch(GOOGLE_SCRIPT_URL, {
       method: "POST",
+      mode: "no-cors",
       body: JSON.stringify(appData)
     })
-    .then(response => {
-      if (!response.ok) {
-        throw new Error('서버 응답 오류: ' + response.status);
-      }
-      return response.text();
-    })
-    .then(result => {
+    .then(() => {
       alert("저장 완료!");
       location.reload();
     })
